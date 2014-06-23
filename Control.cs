@@ -13,13 +13,13 @@ namespace LottoSimulator
         static void Main(string[] args)
         {
             Console.WriteLine("Aaron's Lottery Simulator .1 beta");
-            Console.WriteLine("You have $100.00 to start, be prudent. Each is play $3.00");
+            Console.WriteLine("You have $100.00 to start, be prudent. Each play is $3.00");
             Console.WriteLine("\nWelcome to PowerBall! ");
 
             PowerBall powerBall = new PowerBall();
             powerBall.PlayLotto();
 
-            Console.WriteLine("Thanks for playing!");
+            Console.WriteLine("\nThanks for playing!");
             Console.WriteLine("Your final wallet amount: ${0}", powerBall.TotalWalletAmount);
 
             Console.ReadLine();
