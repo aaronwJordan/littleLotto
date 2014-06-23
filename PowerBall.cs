@@ -10,6 +10,10 @@ namespace LottoSimulator
 {
     class PowerBall : Control
     {
+        // TODO: IMPLEMENT EASY PICK
+        // TODO: TEST DRIVEN DESIGN
+        // TODO: UP TO FIVE PLAYS PER PLAY
+
         private double totalWalletAmount = 100.00;
         private int[] selfPickWhiteBallArray = new int[MAX_PICK_NUM];
         private int[] selfPickPBArray = new int[1];
@@ -31,7 +35,7 @@ namespace LottoSimulator
                 SelfPick();
             else if (userChoice.Equals("n") || userChoice.Equals("N"))
                 EasyPick();
-            else
+            else if (!userChoice.Equals("y") || !userChoice.Equals("n"))
             {
                 Console.Clear();
                 Console.WriteLine("\nPlease enter either (y) for Yes or (n) for No");
@@ -42,7 +46,6 @@ namespace LottoSimulator
             userChoice = Console.ReadLine();
             if (userChoice.Equals("y") || userChoice.Equals("Y"))
                 goto Retry; // Last one I promise
-            return;
         }
 
         // User selects their numbers manually
@@ -58,7 +61,8 @@ namespace LottoSimulator
             Console.Write("\nPlease enter your PowerBall number (1-35): ");
             selfPickPBArray[0] = Convert.ToInt16(Console.ReadLine());
 
-           TimeToDraw();
+            TotalWalletAmount -= 3.00; // Takes money to make money
+            TimeToDraw();
         }
 
         // Computer selects user's numbers automatically
@@ -88,6 +92,7 @@ namespace LottoSimulator
         private void TimeToCompare(int[] computerWhiteBallArray, int[] computerRedBallArray)
         {
             int matchingNumbers = 0;
+            bool matchingPB = false;
             for (int i = 0; i < MAX_PICK_NUM; i++)
             {
                 for (int j = 0; j < MAX_PICK_NUM; j++)
@@ -101,12 +106,11 @@ namespace LottoSimulator
 
             if (computerRedBallArray[0] == selfPickPBArray[0])
             {
-                // We'll go ahead and count this as a hit
-                // In the future, it should separate out and tell if the PB 
-                // had a hit itself
-                matchingNumbers++; 
+                matchingPB = true;
+                matchingNumbers++;
             }
 
+            WalletExchange(matchingNumbers, matchingPB);
             OutputResults(matchingNumbers, computerWhiteBallArray, computerRedBallArray);
         }
 
@@ -142,6 +146,50 @@ namespace LottoSimulator
                 Console.Write(computerWhiteBallArray[i] + ", ");
             }
             Console.WriteLine(" with a PowerBall of {0}", computerRedBallArray[0]);
+
+            Console.WriteLine("Your current wallet amount is: ${0}", TotalWalletAmount);
+        }
+
+        // Handles wallet
+        private void WalletExchange(int matchingNumbers, bool matchingPB)
+        {
+            switch (matchingNumbers)
+            {
+                case 0:
+                    break;
+                case 1:
+                    break;
+                case 2:
+                    break;
+                case 3:
+                    TotalWalletAmount += 7.00;
+                    break;
+                case 4:
+                    TotalWalletAmount += 100.00;
+                    break;
+                case 5:
+                    TotalWalletAmount += 1000000.00; // 1 million
+                    break;
+                default:
+                    Console.WriteLine("Call the Coast Guard");
+                    break;
+            }
+
+            if (matchingPB)
+                TotalWalletAmount += 4.00;
+            else if (matchingPB && matchingNumbers == 1)
+                TotalWalletAmount += 4.00;
+            else if (matchingPB && matchingNumbers == 2)
+                TotalWalletAmount += 7.00;
+            else if (matchingPB && matchingNumbers == 3)
+                TotalWalletAmount += 100.00;
+            else if (matchingPB && matchingNumbers == 4)
+                TotalWalletAmount += 10000.00; // 10,000
+            else if (matchingPB && matchingNumbers == 5)
+            {
+                TotalWalletAmount += JackPot();
+                Console.WriteLine("Daaaaaaamn, you should play the real lottery");
+            }
         }
 
         // White ball = normal picks
@@ -158,6 +206,16 @@ namespace LottoSimulator
             int randomRed = fromMainRandom.Next(1, 36);
 
             return randomRed;
+        }
+
+        // Jackpot is struck
+        private int JackPot()
+        {
+            Random jackPotRandom = new Random();
+
+            int jackPot = jackPotRandom.Next(100000000, 750000000); // 100 million / 750 million
+
+            return jackPot;
         }
     }
 }
