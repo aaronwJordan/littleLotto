@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Odbc;
+using System.IO;
 using System.Linq;
 using System.Net.Mime;
 using System.Security.Cryptography;
@@ -11,7 +12,7 @@ namespace LottoSimulator
 {
     class PowerBall : Control
     {
-        // TODO: TEST DRIVEN DESIGN
+        // TODO: SIMULATION MODE
         // TODO: UP TO FIVE PLAYS PER PLAY
 
         private Random rngMainRandom = new Random();
@@ -218,29 +219,8 @@ namespace LottoSimulator
         // Handles wallet
         private void WalletExchange(int matchingNumbers, bool matchingPB)
         {
-            switch (matchingNumbers)
-            {
-                case 0:
-                    break;
-                case 1:
-                    break;
-                case 2:
-                    break;
-                case 3:
-                    TotalWalletAmount += 7.00;
-                    break;
-                case 4:
-                    TotalWalletAmount += 100.00;
-                    break;
-                case 5:
-                    TotalWalletAmount += 1000000.00; // 1 million
-                    break;
-                default:
-                    Console.WriteLine("Call the Coast Guard");
-                    break;
-            }
 
-            if (matchingPB)
+            if (matchingPB && matchingNumbers == 0)
                 TotalWalletAmount += 4.00;
             else if (matchingPB && matchingNumbers == 1)
                 TotalWalletAmount += 4.00;
@@ -254,6 +234,31 @@ namespace LottoSimulator
             {
                 TotalWalletAmount += JackPot();
                 Console.WriteLine("Daaaaaaamn, you should play the real lottery");
+            }
+
+            if (!matchingPB)
+            {
+                switch (matchingNumbers)
+                {
+                    case 0:
+                        break;
+                    case 1:
+                        break;
+                    case 2:
+                        break;
+                    case 3:
+                        TotalWalletAmount += 7.00;
+                        break;
+                    case 4:
+                        TotalWalletAmount += 100.00;
+                        break;
+                    case 5:
+                        TotalWalletAmount += 1000000.00; // 1 million
+                        break;
+                    default:
+                        Console.WriteLine("Call the Coast Guard");
+                        break;
+                }
             }
         }
 
@@ -276,9 +281,7 @@ namespace LottoSimulator
         // Jackpot is struck
         private int JackPot()
         {
-            Random jackPotRandom = new Random();
-
-            int jackPot = jackPotRandom.Next(100000000, 750000000); // 100 million / 750 million
+            int jackPot = rngMainRandom.Next(100000000, 750000000); // 100 million / 750 million
 
             return jackPot;
         }
@@ -286,7 +289,74 @@ namespace LottoSimulator
         // Simulation Mode
         private void Simulation()
         {
-               
+            // Play 1: # hit(s) - 0 PowerBall - Won $0.00
+            // Play 2: # hit(s) - 1 PowerBall - Won $7.00
+            // 
+            // # of total hits - # of total PowerBall hits
+            // # of games with hits - # of games without hits
+            // # of total money won - # of total money lost
+            // 
+            // Time elapsed: xx.xxx seconds
+
+            Console.WriteLine("\n\n                ***SIMULATION MODE***");
+            Console.Write("Runs: ");
+            int runNumber = Convert.ToInt16(Console.ReadLine());
+
+            int[] userArray = new int[MAX_PICK_NUM];
+            int[] winningNumbers = new int[MAX_PICK_NUM];
+            int userPB = 0;
+            int winningPB = 0;
+            int totalHits = 0;
+            int totalPBHits = 0;
+            double simulatorWallet = 100.00;
+
+            // Fill winningNumbers
+            for (int i = 0; i < MAX_PICK_NUM; i++)
+            {
+                winningNumbers[i] = rngMainRandom.Next(1, 60);
+            }
+            // Fill winningPB
+            winningPB = rngMainRandom.Next(1, 36);
+
+            // Sort winningNumbers for faster comparison (sorted | unsorted) vs (unsorted | unsorted)
+            Array.Sort(winningNumbers);
+
+            // Flow through selected number of runs
+            for (int i = 0; i < runNumber; i++)
+            {
+                int localHits = 0;
+                bool pbHit = false;
+                // Select userNumbers (will be reselected equal to runNumber)
+                for (int a = 0; a < MAX_PICK_NUM; a++)
+                {
+                    userArray[a] = rngMainRandom.Next(1, 60);
+                }
+                userPB = rngMainRandom.Next(1, 36);
+
+                // Compare userArray to winningNumbers
+                for (int j = 0; j < MAX_PICK_NUM; j++)
+                {
+                    for (int k = 0; k < MAX_PICK_NUM; k++)
+                    {
+                        if (winningNumbers[j] == userArray[k])
+                        {
+                            localHits++;
+                            totalHits++;
+                        }
+                    }
+                }
+                if (winningPB == userPB)
+                {
+                    pbHit = true;
+                    totalPBHits++;
+                }
+
+                using (StreamWriter fileWriter = new StreamWriter(@"C:\Users\ajordan\Desktop\log.txt"))
+                {
+                    fileWriter.Write("Play {0}: {1} hit(s) - {2} PowerBall - Won ${3}", i, localHits, pbHit);
+                }
+
+            }
         }
     }
 }
