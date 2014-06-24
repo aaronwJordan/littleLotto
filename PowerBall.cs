@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Odbc;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
@@ -289,6 +290,7 @@ namespace LottoSimulator
         // Simulation Mode
         private void Simulation()
         {
+            File.Create(@"C:\Users\ajordan\Desktop\log.txt").Close();
             // Play 1: # hit(s) - 0 PowerBall - Won $0.00
             // Play 2: # hit(s) - 1 PowerBall - Won $7.00
             // 
@@ -298,9 +300,9 @@ namespace LottoSimulator
             // 
             // Time elapsed: xx.xxx seconds
 
-            Console.WriteLine("\n\n                ***SIMULATION MODE***");
+            Console.WriteLine("\n\n                           ***SIMULATION MODE***");
             Console.Write("Runs: ");
-            int runNumber = Convert.ToInt16(Console.ReadLine());
+            long runNumber = Convert.ToInt64(Console.ReadLine());
 
             int[] userArray = new int[MAX_PICK_NUM];
             int[] winningNumbers = new int[MAX_PICK_NUM];
@@ -321,6 +323,9 @@ namespace LottoSimulator
             // Sort winningNumbers for faster comparison (sorted | unsorted) vs (unsorted | unsorted)
             Array.Sort(winningNumbers);
 
+            // Stopwatch for benchmarking purposes
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();    
             // Flow through selected number of runs
             for (int i = 0; i < runNumber; i++)
             {
@@ -351,12 +356,17 @@ namespace LottoSimulator
                     totalPBHits++;
                 }
 
-                using (StreamWriter fileWriter = new StreamWriter(@"C:\Users\ajordan\Desktop\log.txt"))
+                using (StreamWriter fileWriter = new StreamWriter(@"C:\Users\ajordan\Desktop\log.txt", true))
                 {
-                    fileWriter.Write("Play {0}: {1} hit(s) - {2} PowerBall - Won ${3}", i, localHits, pbHit);
+                    fileWriter.WriteLine("Play {0}: {1} hit(s) - {2} PowerBall - Won $", i, localHits, pbHit);
                 }
-
             }
+
+            stopWatch.Stop();
+            Console.WriteLine("Time elapsed: {0}", stopWatch.Elapsed);
+            Console.Write("Done..");
+            Console.ReadLine();
+            Environment.Exit(0);
         }
     }
 }
