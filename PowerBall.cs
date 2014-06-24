@@ -14,6 +14,7 @@ namespace LottoSimulator
     class PowerBall : Control
     {
         // TODO: SIMULATION MODE
+        // TODO: MULTITHREADING
         // TODO: UP TO FIVE PLAYS PER PLAY
 
         private Random rngMainRandom = new Random();
@@ -290,7 +291,6 @@ namespace LottoSimulator
         // Simulation Mode
         private void Simulation()
         {
-            File.Create(@"C:\Users\ajordan\Desktop\log.txt").Close();
             // Play 1: # hit(s) - 0 PowerBall - Won $0.00
             // Play 2: # hit(s) - 1 PowerBall - Won $7.00
             // 
@@ -310,7 +310,11 @@ namespace LottoSimulator
             int winningPB = 0;
             int totalHits = 0;
             int totalPBHits = 0;
+            int gameHit = 0;
+            double totalPlayWinnings = 0;
+            double totalPlayLosses = 0;
             double simulatorWallet = 100.00;
+            File.Create(@"C:\Users\ajordan\Desktop\log.txt").Close();
 
             // Fill winningNumbers
             for (int i = 0; i < MAX_PICK_NUM; i++)
@@ -330,8 +334,12 @@ namespace LottoSimulator
             for (int i = 0; i < runNumber; i++)
             {
                 int localHits = 0;
+                double playWinnings = 0;
                 bool pbHit = false;
-                // Select userNumbers (will be reselected equal to runNumber)
+                totalPlayLosses -= 3;
+                TotalWalletAmount -= 3;
+
+                // Generate userNumbers and userPowerBalls automatically
                 for (int a = 0; a < MAX_PICK_NUM; a++)
                 {
                     userArray[a] = rngMainRandom.Next(1, 60);
@@ -350,19 +358,97 @@ namespace LottoSimulator
                         }
                     }
                 }
+
+                #region
+                // Compare PowerBalls
                 if (winningPB == userPB)
                 {
                     pbHit = true;
                     totalPBHits++;
                 }
 
+                if (pbHit && localHits == 0)
+                {
+                    TotalWalletAmount += 4.00;
+                    playWinnings = 4;
+                }    
+                else if (pbHit && localHits == 1)
+                {
+                    TotalWalletAmount += 4.00;
+                    playWinnings = 4;
+                }
+                    
+                else if (pbHit && localHits == 2)
+                {
+                    TotalWalletAmount += 7.00;
+                    playWinnings = 7;
+                }
+                    
+                else if (pbHit && localHits == 3)
+                {
+                    TotalWalletAmount += 100.00;
+                    playWinnings = 100;
+                }
+                    
+                else if (pbHit && localHits == 4)
+                {
+                    TotalWalletAmount += 10000.00; // 10,000
+                    playWinnings = 10000;
+                }
+                    
+                else if (pbHit && localHits == 5)
+                {
+                    long tempJackPot = JackPot();
+                    TotalWalletAmount += tempJackPot;
+                    playWinnings = tempJackPot;
+                    Console.WriteLine("JACKPOT");
+                }
+
+                if (!pbHit)
+                {
+                    switch (localHits)
+                    {
+                        case 0:
+                            break;
+                        case 1:
+                            break;
+                        case 2:
+                            break;
+                        case 3:
+                            TotalWalletAmount += 7.00;
+                            playWinnings = 7;
+                            break;
+                        case 4:
+                            TotalWalletAmount += 100.00;
+                            playWinnings = 100;
+                            break;
+                        case 5:
+                            TotalWalletAmount += 1000000.00; // 1 million
+                            playWinnings = 1000000;
+                            break;
+                        default:
+                            Console.WriteLine("Call the Coast Guard");
+                            break;
+                    }
+                }
+                #endregion
+
+                totalPlayWinnings += playWinnings;
                 using (StreamWriter fileWriter = new StreamWriter(@"C:\Users\ajordan\Desktop\log.txt", true))
                 {
-                    fileWriter.WriteLine("Play {0}: {1} hit(s) - {2} PowerBall - Won $", i, localHits, pbHit);
+                    fileWriter.WriteLine("Play {0}: {1} hit(s) - {2} PowerBall - Won ${3}", (i + 1), localHits, pbHit, playWinnings);
                 }
             }
 
             stopWatch.Stop();
+
+            Console.WriteLine("\n{0} plays total", runNumber);
+            Console.WriteLine("{0} total hits - {1} total PowerBall hits", totalHits, totalPBHits);
+            //Console.WriteLine("{0} of games with hits - {1} of games without hits"); Read file in and count 0's up for # of games without hits,  
+            //then subtract from total amount of games for # of games with hits
+            Console.WriteLine("${0} total money won - ${1} total money lost", totalPlayWinnings, totalPlayLosses);
+            
+            Console.WriteLine("\nFinal wallet amount: {0}", TotalWalletAmount);
             Console.WriteLine("Time elapsed: {0}", stopWatch.Elapsed);
             Console.Write("Done..");
             Console.ReadLine();
