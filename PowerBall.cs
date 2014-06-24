@@ -235,7 +235,7 @@ namespace LottoSimulator
             else if (matchingPB && matchingNumbers == 5)
             {
                 TotalWalletAmount += JackPot();
-                Console.WriteLine("Daaaaaaamn, you should play the real lottery");
+                Console.WriteLine("JACKPOT");
             }
 
             if (!matchingPB)
@@ -291,10 +291,12 @@ namespace LottoSimulator
         // Simulation Mode
         private void Simulation()
         {
+            // This is how it should look?
+
             // Play 1: # hit(s) - 0 PowerBall - Won $0.00
             // Play 2: # hit(s) - 1 PowerBall - Won $7.00
             // 
-            // # of total hits - # of total PowerBall hits
+            // # of total hits      - # of total PowerBall hits
             // # of games with hits - # of games without hits
             // # of total money won - # of total money lost
             // 
@@ -306,14 +308,18 @@ namespace LottoSimulator
 
             int[] userArray = new int[MAX_PICK_NUM];
             int[] winningNumbers = new int[MAX_PICK_NUM];
-            int userPB = 0;
-            int winningPB = 0;
-            int totalHits = 0;
-            int totalPBHits = 0;
-            int gameHit = 0;
-            double totalPlayWinnings = 0;
-            double totalPlayLosses = 0;
-            double simulatorWallet = 100.00;
+            int userPB                  = 0;
+            int winningPB               = 0;
+            int totalHits               = 0;
+            int totalPBHits             = 0;
+            int gameHits                = 0;
+            int oneHit                  = 0;
+            int twoHit                  = 0;
+            int threeHit                = 0;
+            int fourHit                 = 0;
+            int fiveHit                 = 0;
+            double totalPlayWinnings    = 0;
+            double totalPlayLosses      = 0;
             File.Create(@"C:\Users\ajordan\Desktop\log.txt").Close();
 
             // Fill winningNumbers
@@ -330,6 +336,7 @@ namespace LottoSimulator
             // Stopwatch for benchmarking purposes
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();    
+
             // Flow through selected number of runs
             for (int i = 0; i < runNumber; i++)
             {
@@ -359,7 +366,6 @@ namespace LottoSimulator
                     }
                 }
 
-                #region
                 // Compare PowerBalls
                 if (winningPB == userPB)
                 {
@@ -367,6 +373,8 @@ namespace LottoSimulator
                     totalPBHits++;
                 }
 
+                #region
+                // All winnings logic
                 if (pbHit && localHits == 0)
                 {
                     TotalWalletAmount += 4.00;
@@ -433,22 +441,60 @@ namespace LottoSimulator
                 }
                 #endregion
 
+                // Get total amount of winnings
                 totalPlayWinnings += playWinnings;
+
+                // Write to log.txt @ desktop -- @"C:\Users\ajordan\Desktop\log.txt" -- is hard coded
                 using (StreamWriter fileWriter = new StreamWriter(@"C:\Users\ajordan\Desktop\log.txt", true))
                 {
                     fileWriter.WriteLine("Play {0}: {1} hit(s) - {2} PowerBall - Won ${3}", (i + 1), localHits, pbHit, playWinnings);
+
+                    switch (localHits)
+                    {
+                        case 0: 
+                            break;
+                        case 1:
+                            oneHit++;
+                            gameHits++;
+                            break;
+                        case 2:
+                            twoHit++;
+                            gameHits++;
+                            break;
+                        case 3:
+                            threeHit++;
+                            gameHits++;
+                            break;
+                        case 4:
+                            fourHit++;
+                            gameHits++;
+                            break;
+                        case 5:
+                            fiveHit++;
+                            gameHits++;
+                            break;
+                        default:
+                            Console.WriteLine("Call the Coastguard");
+                            break;
+                    }
                 }
             }
 
             stopWatch.Stop();
 
+            // Display useful statistics
             Console.WriteLine("\n{0} plays total", runNumber);
             Console.WriteLine("{0} total hits - {1} total PowerBall hits", totalHits, totalPBHits);
-            //Console.WriteLine("{0} of games with hits - {1} of games without hits"); Read file in and count 0's up for # of games without hits,  
-            //then subtract from total amount of games for # of games with hits
-            Console.WriteLine("${0} total money won - ${1} total money lost", totalPlayWinnings, totalPlayLosses);
-            
-            Console.WriteLine("\nFinal wallet amount: {0}", TotalWalletAmount);
+            Console.WriteLine("\n{0} - 0 hit game(s)", (runNumber - gameHits));
+            Console.WriteLine("{0} - 1 hit game(s)", oneHit);
+            Console.WriteLine("{0} - 2 hit game(s)", twoHit);
+            Console.WriteLine("{0} - 3 hit game(s)", threeHit);
+            Console.WriteLine("{0} - 4 hit game(s)", fourHit);
+            Console.WriteLine("{0} - 5 hit game(s)", fiveHit);
+            Console.WriteLine("{0} of games with hits - {1} of games without hits", gameHits, (runNumber - gameHits));
+
+            Console.WriteLine("\n${0} total money won - ${1} total money lost", totalPlayWinnings, totalPlayLosses);
+            Console.WriteLine("Final wallet amount: {0}", TotalWalletAmount);
             Console.WriteLine("Time elapsed: {0}", stopWatch.Elapsed);
             Console.Write("Done..");
             Console.ReadLine();
