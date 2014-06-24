@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Data.Odbc;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Net.Mime;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
+using System.Diagnostics;
+
 
 namespace LottoSimulator
 {
@@ -17,6 +12,7 @@ namespace LottoSimulator
         // TODO: MULTITHREADING
         // TODO: UP TO FIVE PLAYS PER PLAY
 
+        #region Class declarations / Accessors
         private Random rngMainRandom = new Random();
         private double totalWalletAmount = 100.00;
         private int[] selfPickWhiteBallArray = new int[MAX_PICK_NUM];
@@ -32,6 +28,7 @@ namespace LottoSimulator
             get { return totalWalletAmount; }
             set { totalWalletAmount = value; }
         }
+        #endregion
 
         // Main control logic
         public void PlayLotto()
@@ -306,6 +303,7 @@ namespace LottoSimulator
             Console.Write("Runs: ");
             long runNumber = Convert.ToInt64(Console.ReadLine());
 
+            #region Local declarations
             int[] userArray = new int[MAX_PICK_NUM];
             int[] winningNumbers = new int[MAX_PICK_NUM];
             int userPB                  = 0;
@@ -320,6 +318,9 @@ namespace LottoSimulator
             int fiveHit                 = 0;
             double totalPlayWinnings    = 0;
             double totalPlayLosses      = 0;
+            #endregion
+
+            // Clearing the log.txt file for each new write
             File.Create(@"C:\Users\ajordan\Desktop\log.txt").Close();
 
             // Fill winningNumbers
@@ -373,7 +374,7 @@ namespace LottoSimulator
                     totalPBHits++;
                 }
 
-                #region
+                #region Wallet logic
                 // All winnings logic
                 if (pbHit && localHits == 0)
                 {
@@ -481,6 +482,12 @@ namespace LottoSimulator
             }
 
             stopWatch.Stop();
+
+            // Write stopWatch timings to times.txt for benchmarking -- @"C:\Users\ajordan\Desktop\times.txt" -- is hard coded
+            using (StreamWriter fileWriter = new StreamWriter(@"C:\Users\ajordan\Desktop\times.txt", true))
+            {
+                fileWriter.WriteLine("{0} simulations processed in {1}", runNumber, stopWatch.Elapsed);
+            }
 
             // Display useful statistics
             Console.WriteLine("\n{0} plays total", runNumber);
