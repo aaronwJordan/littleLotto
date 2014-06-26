@@ -4,15 +4,19 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Text;
 using System.Threading;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 
 namespace LottoSimulator
 {
     class PowerBall : Control
     {
-        // TODO: SIMULATION MODE
+        // TODO: FISHER-YATES INTO SELFPICK/EASYPICK (STILL DRAWING DUPLICATES)
         // TODO: MULTITHREADING
 
         #region Class declarations / Accessors
@@ -25,6 +29,8 @@ namespace LottoSimulator
         private bool selfPick = false;
         private bool easyPick = false;
         private bool simulationMode = false;
+        // MTTEST
+        private static Dictionary<String, Object> LockObjects = new Dictionary<string, object>();
 
         public double TotalWalletAmount
         {
@@ -36,7 +42,7 @@ namespace LottoSimulator
         // Main control logic
         public void PlayLotto()
         {
-            Retry:
+        Retry:
             Console.Write("\nWould you like to choose your own numbers? If you select no a computer will generate them for you (y/n): ");
             string userChoice = Console.ReadLine();
 
@@ -72,7 +78,7 @@ namespace LottoSimulator
         {
             selfPick = true;
             Console.Write("Please enter five numbers between (1-59): ");
-            for (int i = 0; i < MAX_PICK_NUM; i ++)
+            for (int i = 0; i < MAX_PICK_NUM; i++)
             {
                 Console.Write("\n" + (i + 1) + ".) ");
                 selfPickWhiteBallArray[i] = Convert.ToInt16(Console.ReadLine());
@@ -201,7 +207,7 @@ namespace LottoSimulator
 
             selfPick = false;
             easyPick = false;
-            
+
             // Output computer selection
             Console.Write("\nThe winning lottery numbers are: ");
             for (int i = 0; i < MAX_PICK_NUM; i++)
@@ -288,234 +294,59 @@ namespace LottoSimulator
             return jackPot;
         }
 
+        #region Simulation
         // Simulation Mode - This is a disgusting function and is not intended for user access
         private void Simulation()
         {
-            // This is how it should look? -ish
-
-            // Play 1: # hit(s) - 0 PowerBall - Won $0.00
-            // Play 2: # hit(s) - 1 PowerBall - Won $7.00
-            // 
-            // # of total hits      - # of total PowerBall hits
-            // # of games with hits - # of games without hits
-            // # of total money won - # of total money lost
-            // 
-            // Time elapsed: xx.xxx seconds
+            // Clearing the log.txt file for each new write
+            File.Create(@"C:\Users\ajordan\Desktop\log.txt").Close();
 
             Console.WriteLine("\n\n                           ***SIMULATION MODE***");
             Console.Write("Runs: ");
             long runNumber = Convert.ToInt64(Console.ReadLine());
 
             #region Local declarations
+
             int[] userArray = new int[MAX_PICK_NUM];
             int[] winningNumbers = new int[MAX_PICK_NUM];
-            int userPB                  = 0;
-            int winningPB               = 0;
-            int totalHits               = 0;
-            int totalPBHits             = 0;
-            int gameHits                = 0;
-            int oneHit                  = 0;
-            int twoHit                  = 0;
-            int threeHit                = 0;
-            int fourHit                 = 0;
-            int fiveHit                 = 0;
-            double totalPlayWinnings    = 0;
-            double totalPlayLosses      = 0;
-            #endregion
+            int userPB = 0;
+            int winningPB = 0;
+            int totalHits = 0;
+            int totalPBHits = 0;
+            int gameHits = 0;
+            int oneHit = 0;
+            int twoHit = 0;
+            int threeHit = 0;
+            int fourHit = 0;
+            int fiveHit = 0;
+            double totalPlayWinnings = 0;
+            double totalPlayLosses = 0;
 
-            // Clearing the log.txt file for each new write
-            File.Create(@"C:\Users\ajordan\Desktop\log.txt").Close();
+            #endregion
 
             // Stopwatch for benchmarking purposes
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            #region WinningNumbers
             // Fill winningNumbers, Fisher-Yates
-            var winningNumbersShuffleArray = Enumerable.Range(1, 59).ToArray();
-            for (int i = winningNumbersShuffleArray.Length; i > 0; i--)
-            {
-                int j = rngMainRandom.Next(i);
-
-                var tmp = winningNumbersShuffleArray[j];
-                winningNumbersShuffleArray[j] = winningNumbersShuffleArray[i - 1];
-                winningNumbersShuffleArray[i - 1] = tmp;
-            }
-            for (int i = 0; i < MAX_PICK_NUM; i++)
-            {
-                winningNumbers[i] = winningNumbersShuffleArray[i];
-            }
+            ShuffleWinningNumbers(winningNumbers);
 
             // Fill winningPB
             winningPB = rngMainRandom.Next(1, 36);
 
+            // Print winningNumbers to log.txt
+            using (var fileWriter = new StreamWriter(@"C:\Users\ajordan\Desktop\log.txt", true))
+            {
+                fileWriter.WriteLine("Winning numbers: [{0}] - PowerBall: [{1}]", string.Join(", ", winningNumbers.Select(v => v.ToString())), winningPB);
+            }
+
             // Sort winningNumbers for faster comparison (sorted | unsorted) vs (unsorted | unsorted)
             Array.Sort(winningNumbers);
-            #endregion
 
-            #region Main logic
             // Flow through selected number of runs (top of loop-stack)
-            for (int i = 0; i < runNumber; i++)
-            {
-                int localHits = 0;
-                double playWinnings = 0;
-                bool pbHit = false;
-                totalPlayLosses -= 3;
-                TotalWalletAmount -= 3;
+            SimulatorLogic(runNumber, totalPlayLosses, userArray, userPB, winningNumbers, totalHits, winningPB, totalHits, totalPlayWinnings, oneHit, twoHit, threeHit, fourHit, fiveHit, gameHits);
 
-                // Fisher-Yates
-                var userShuffleArray = Enumerable.Range(1, 59).ToArray();
-                for (int b = userShuffleArray.Length; b > 0; b--)
-                {
-                    int j = rngMainRandom.Next(b);
-
-                    var tmp = userShuffleArray[j];
-                    userShuffleArray[j] = userShuffleArray[b - 1];
-                    userShuffleArray[b - 1] = tmp;
-                }
-                for (int a = 0; a < MAX_PICK_NUM; a++)
-                {
-                    userArray[a] = userShuffleArray[a];
-                }
-                userPB = rngMainRandom.Next(1, 36);
-
-                // Compare userArray to winningNumbers
-                for (int j = 0; j < MAX_PICK_NUM; j++)
-                {
-                    for (int k = 0; k < MAX_PICK_NUM; k++)
-                    {
-                        if (winningNumbers[j] == userArray[k])
-                        {
-                            localHits++;
-                            totalHits++;
-                        }
-                    }
-                }
-
-                // Compare PowerBalls
-                if (winningPB == userPB)
-                {
-                    pbHit = true;
-                    totalPBHits++;
-                }
-
-                #region Wallet logic
-                // All winnings logic
-                if (pbHit && localHits == 0)
-                {
-                    TotalWalletAmount += 4.00;
-                    playWinnings = 4;
-                }    
-                else if (pbHit && localHits == 1)
-                {
-                    TotalWalletAmount += 4.00;
-                    playWinnings = 4;
-                }
-                    
-                else if (pbHit && localHits == 2)
-                {
-                    TotalWalletAmount += 7.00;
-                    playWinnings = 7;
-                }
-                    
-                else if (pbHit && localHits == 3)
-                {
-                    TotalWalletAmount += 100.00;
-                    playWinnings = 100;
-                }
-                    
-                else if (pbHit && localHits == 4)
-                {
-                    TotalWalletAmount += 10000.00; // 10,000
-                    playWinnings = 10000;
-                }
-                    
-                else if (pbHit && localHits == 5)
-                {
-                    long tempJackPot = JackPot();
-                    TotalWalletAmount += tempJackPot;
-                    playWinnings = tempJackPot;
-                    Console.WriteLine("JACKPOT");
-                }
-
-                if (!pbHit)
-                {
-                    switch (localHits)
-                    {
-                        case 0:
-                            break;
-                        case 1:
-                            break;
-                        case 2:
-                            break;
-                        case 3:
-                            TotalWalletAmount += 7.00;
-                            playWinnings = 7;
-                            break;
-                        case 4:
-                            TotalWalletAmount += 100.00;
-                            playWinnings = 100;
-                            break;
-                        case 5:
-                            TotalWalletAmount += 1000000.00; // 1 million
-                            playWinnings = 1000000;
-                            break;
-                        default:
-                            Console.WriteLine("Defaulted in wallet logic - Simulation()");
-                            break;
-                    }
-                }
-                #endregion
-
-                // Get total amount of winnings
-                totalPlayWinnings += playWinnings;
-
-                #region SteamWriter log.txt
-                // Write to log.txt @ desktop -- @"C:\Users\ajordan\Desktop\log.txt" -- is hard coded
-                using (StreamWriter fileWriter = new StreamWriter(@"C:\Users\ajordan\Desktop\log.txt", true))
-                {
-                    if (i == 0)
-                    {
-                        fileWriter.WriteLine("Winning numbers: [{0}] - PowerBall: [{1}]", string.Join(", ", winningNumbers.Select(v => v.ToString())), winningPB);
-                    }
-                    fileWriter.Write("Play {0}: {1} hit(s) - {2} PowerBall - Won ${3}", (i + 1), localHits, pbHit, playWinnings);
-
-                    // Lambda expression... (aka black magic)
-                    fileWriter.WriteLine(" - [{0}] - [{1}] ", string.Join(", ", userArray.Select(v => v.ToString(CultureInfo.CurrentCulture))), userPB);
-
-                    switch (localHits)
-                    {
-                        case 0: 
-                            break;
-                        case 1:
-                            oneHit++;
-                            gameHits++;
-                            break;
-                        case 2:
-                            twoHit++;
-                            gameHits++;
-                            break;
-                        case 3:
-                            threeHit++;
-                            gameHits++;
-                            break;
-                        case 4:
-                            fourHit++;
-                            gameHits++;
-                            break;
-                        case 5:
-                            fiveHit++;
-                            gameHits++;
-                            break;
-                        default:
-                            Console.WriteLine("Defaulted in StreamWriter - Simulator()");
-                            break;
-                    }
-                }
-                #endregion
-            }
-            #endregion
-
+            // Stop benchmarking
             stopWatch.Stop();
 
             // Write stopWatch timings to times.txt for benchmarking -- @"C:\Users\ajordan\Desktop\times.txt" -- is hard coded
@@ -524,6 +355,7 @@ namespace LottoSimulator
                 fileWriter.WriteLine("{0} simulations processed in {1}", runNumber, stopWatch.Elapsed);
             }
 
+            #region Output
             // Display useful statistics
             Console.WriteLine("\n{0} plays total", runNumber);
             Console.WriteLine("{0} total hits - {1} total PowerBall hits", totalHits, totalPBHits);
@@ -541,6 +373,208 @@ namespace LottoSimulator
             Console.Write("Done..");
             Console.ReadLine();
             Environment.Exit(0);
+            #endregion
         }
+
+        public void ShuffleWinningNumbers(int[] winningNumbers)
+        {
+            var winningNumbersShuffleArray = Enumerable.Range(1, 59).ToArray();
+            for (int i = winningNumbersShuffleArray.Length; i > 0; i--)
+            {
+                int j = rngMainRandom.Next(i);
+
+                var tmp = winningNumbersShuffleArray[j];
+                winningNumbersShuffleArray[j] = winningNumbersShuffleArray[i - 1];
+                winningNumbersShuffleArray[i - 1] = tmp;
+            }
+            for (int i = 0; i < MAX_PICK_NUM; i++)
+            {
+                winningNumbers[i] = winningNumbersShuffleArray[i];
+            }
+        }
+
+        public void SimulatorLogic(long runNumber, double totalPlayLosses, int[] userArray, int userPB, int[] winningNumbers, int totalHits, int winningPB, int totalPBHits, double totalPlayWinnings, int oneHit, int twoHit, int threeHit, int fourHit, int fiveHit, int gameHits)
+        {
+            // Write to log.txt @ desktop -- @"C:\Users\ajordan\Desktop\log.txt" -- is hard coded
+            string outputFile = "C:\\Users\\ajordan\\Desktop\\log.txt";
+            using (FileStream fs = new FileStream(outputFile, FileMode.Append, FileSystemRights.AppendData, FileShare.Read, 4096, FileOptions.None))
+            {
+                using (StreamWriter sw = new StreamWriter(fs))
+                {
+                    Parallel.For(0, runNumber, i =>
+                    {
+                        int localHits = 0;
+                        double playWinnings = 0;
+                        bool pbHit = false;
+                        totalPlayLosses -= 3;
+                        TotalWalletAmount -= 3;
+
+                        // Fisher-Yates
+                        var userShuffleArray = Enumerable.Range(1, 59).ToArray();
+                        for (int b = userShuffleArray.Length; b > 0; b--)
+                        {
+                            int j = rngMainRandom.Next(b);
+
+                            var tmp = userShuffleArray[j];
+                            userShuffleArray[j] = userShuffleArray[b - 1];
+                            userShuffleArray[b - 1] = tmp;
+                        }
+                        for (int a = 0; a < MAX_PICK_NUM; a++)
+                        {
+                            userArray[a] = userShuffleArray[a];
+                        }
+                        userPB = rngMainRandom.Next(1, 36);
+
+                        // Compare userArray to winningNumbers
+                        for (int j = 0; j < MAX_PICK_NUM; j++)
+                        {
+                            for (int k = 0; k < MAX_PICK_NUM; k++)
+                            {
+                                if (winningNumbers[j] == userArray[k])
+                                {
+                                    localHits++;
+                                    totalHits++;
+                                }
+                            }
+                        }
+
+                        // Compare PowerBalls
+                        if (winningPB == userPB)
+                        {
+                            pbHit = true;
+                            totalPBHits++;
+                        }
+
+                        #region Wallet logic
+
+                        // All winnings logic
+                        if (pbHit && localHits == 0)
+                        {
+                            TotalWalletAmount += 4.00;
+                            playWinnings = 4;
+                        }
+                        else if (pbHit && localHits == 1)
+                        {
+                            TotalWalletAmount += 4.00;
+                            playWinnings = 4;
+                        }
+
+                        else if (pbHit && localHits == 2)
+                        {
+                            TotalWalletAmount += 7.00;
+                            playWinnings = 7;
+                        }
+
+                        else if (pbHit && localHits == 3)
+                        {
+                            TotalWalletAmount += 100.00;
+                            playWinnings = 100;
+                        }
+
+                        else if (pbHit && localHits == 4)
+                        {
+                            TotalWalletAmount += 10000.00; // 10,000
+                            playWinnings = 10000;
+                        }
+
+                        else if (pbHit && localHits == 5)
+                        {
+                            long tempJackPot = JackPot();
+                            TotalWalletAmount += tempJackPot;
+                            playWinnings = tempJackPot;
+                            Console.WriteLine("JACKPOT");
+                        }
+
+                        if (!pbHit)
+                        {
+                            switch (localHits)
+                            {
+                                case 0:
+                                    break;
+                                case 1:
+                                    break;
+                                case 2:
+                                    break;
+                                case 3:
+                                    TotalWalletAmount += 7.00;
+                                    playWinnings = 7;
+                                    break;
+                                case 4:
+                                    TotalWalletAmount += 100.00;
+                                    playWinnings = 100;
+                                    break;
+                                case 5:
+                                    TotalWalletAmount += 1000000.00; // 1 million
+                                    playWinnings = 1000000;
+                                    break;
+                                default:
+                                    Console.WriteLine("Defaulted in wallet logic - Simulation()");
+                                    break;
+                            }
+                        }
+
+                        #endregion
+
+                        // Get total amount of winnings
+                        totalPlayWinnings += playWinnings;
+
+                        #region localHits
+
+                        switch (localHits)
+                        {
+                            case 0:
+                                break;
+                            case 1:
+                                oneHit++;
+                                gameHits++;
+                                break;
+                            case 2:
+                                twoHit++;
+                                gameHits++;
+                                break;
+                            case 3:
+                                threeHit++;
+                                gameHits++;
+                                break;
+                            case 4:
+                                fourHit++;
+                                gameHits++;
+                                break;
+                            case 5:
+                                fiveHit++;
+                                gameHits++;
+                                break;
+                            default:
+                                Console.WriteLine("Defaulted in StreamWriter - Simulator()");
+                                break;
+                        }
+
+                        #endregion
+
+                        //userArrayTransfer(winningNumbers, winningPB, localHits, pbHit, playWinnings, userArray, userPB, i);
+                        WriteToLog(winningNumbers, winningPB, localHits, pbHit, playWinnings, userArray, userPB, i, outputFile, sw);
+                    });
+                }
+            }
+        }
+
+        public static void WriteToLog(int[] winningNumbers, int winningPB, int localHits, bool pbHit, double playWinnings, int[] userArray, int userPB, long runningNumbersI, string outputFile, StreamWriter sw)
+        {
+            if (!LockObjects.ContainsKey(outputFile))
+            {
+                LockObjects.Add(outputFile, new object());
+            }
+
+            lock (LockObjects[outputFile])
+            {                                  
+                sw.WriteLine("Play {0}: {1} hit(s) - {2} PowerBall - Won ${3} - [{4}] - [{5}] - Thread: [{6}]", (runningNumbersI + 1), localHits, pbHit, playWinnings, string.Join(", ", userArray.Select(v => v.ToString(CultureInfo.CurrentCulture))), userPB, Thread.CurrentThread.ManagedThreadId);                              
+            }
+        }
+
+        //public void userArrayTransfer(int[] winningNumbers, int winningPB, int localHits, bool pbHit, double playWinnings, int[] userArray, int userPB, long i)
+        //{
+        //    WriteToLog(winningNumbers, winningPB, localHits, pbHit, playWinnings, userArray, userPB, i);
+        //}
+        #endregion
     }
 }
