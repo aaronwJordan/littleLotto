@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Diagnostics;
 
@@ -10,7 +14,6 @@ namespace LottoSimulator
     {
         // TODO: SIMULATION MODE
         // TODO: MULTITHREADING
-        // TODO: UP TO FIVE PLAYS PER PLAY
 
         #region Class declarations / Accessors
         private Random rngMainRandom = new Random();
@@ -285,10 +288,10 @@ namespace LottoSimulator
             return jackPot;
         }
 
-        // Simulation Mode
+        // Simulation Mode - This is a disgusting function and is not intended for user access
         private void Simulation()
         {
-            // This is how it should look?
+            // This is how it should look? -ish
 
             // Play 1: # hit(s) - 0 PowerBall - Won $0.00
             // Play 2: # hit(s) - 1 PowerBall - Won $7.00
@@ -323,22 +326,35 @@ namespace LottoSimulator
             // Clearing the log.txt file for each new write
             File.Create(@"C:\Users\ajordan\Desktop\log.txt").Close();
 
-            // Fill winningNumbers
+            // Stopwatch for benchmarking purposes
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
+
+            #region WinningNumbers
+            // Fill winningNumbers, Fisher-Yates
+            var winningNumbersShuffleArray = Enumerable.Range(1, 59).ToArray();
+            for (int i = winningNumbersShuffleArray.Length; i > 0; i--)
+            {
+                int j = rngMainRandom.Next(i);
+
+                var tmp = winningNumbersShuffleArray[j];
+                winningNumbersShuffleArray[j] = winningNumbersShuffleArray[i - 1];
+                winningNumbersShuffleArray[i - 1] = tmp;
+            }
             for (int i = 0; i < MAX_PICK_NUM; i++)
             {
-                winningNumbers[i] = rngMainRandom.Next(1, 60);
+                winningNumbers[i] = winningNumbersShuffleArray[i];
             }
+
             // Fill winningPB
             winningPB = rngMainRandom.Next(1, 36);
 
             // Sort winningNumbers for faster comparison (sorted | unsorted) vs (unsorted | unsorted)
             Array.Sort(winningNumbers);
+            #endregion
 
-            // Stopwatch for benchmarking purposes
-            Stopwatch stopWatch = new Stopwatch();
-            stopWatch.Start();    
-
-            // Flow through selected number of runs
+            #region Main logic
+            // Flow through selected number of runs (top of loop-stack)
             for (int i = 0; i < runNumber; i++)
             {
                 int localHits = 0;
@@ -347,10 +363,19 @@ namespace LottoSimulator
                 totalPlayLosses -= 3;
                 TotalWalletAmount -= 3;
 
-                // Generate userNumbers and userPowerBalls automatically
+                // Fisher-Yates
+                var userShuffleArray = Enumerable.Range(1, 59).ToArray();
+                for (int b = userShuffleArray.Length; b > 0; b--)
+                {
+                    int j = rngMainRandom.Next(b);
+
+                    var tmp = userShuffleArray[j];
+                    userShuffleArray[j] = userShuffleArray[b - 1];
+                    userShuffleArray[b - 1] = tmp;
+                }
                 for (int a = 0; a < MAX_PICK_NUM; a++)
                 {
-                    userArray[a] = rngMainRandom.Next(1, 60);
+                    userArray[a] = userShuffleArray[a];
                 }
                 userPB = rngMainRandom.Next(1, 36);
 
@@ -436,7 +461,7 @@ namespace LottoSimulator
                             playWinnings = 1000000;
                             break;
                         default:
-                            Console.WriteLine("Call the Coast Guard");
+                            Console.WriteLine("Defaulted in wallet logic - Simulation()");
                             break;
                     }
                 }
@@ -445,10 +470,18 @@ namespace LottoSimulator
                 // Get total amount of winnings
                 totalPlayWinnings += playWinnings;
 
+                #region SteamWriter log.txt
                 // Write to log.txt @ desktop -- @"C:\Users\ajordan\Desktop\log.txt" -- is hard coded
                 using (StreamWriter fileWriter = new StreamWriter(@"C:\Users\ajordan\Desktop\log.txt", true))
                 {
-                    fileWriter.WriteLine("Play {0}: {1} hit(s) - {2} PowerBall - Won ${3}", (i + 1), localHits, pbHit, playWinnings);
+                    if (i == 0)
+                    {
+                        fileWriter.WriteLine("Winning numbers: [{0}] - PowerBall: [{1}]", string.Join(", ", winningNumbers.Select(v => v.ToString())), winningPB);
+                    }
+                    fileWriter.Write("Play {0}: {1} hit(s) - {2} PowerBall - Won ${3}", (i + 1), localHits, pbHit, playWinnings);
+
+                    // Lambda expression... (aka black magic)
+                    fileWriter.WriteLine(" - [{0}] - [{1}] ", string.Join(", ", userArray.Select(v => v.ToString(CultureInfo.CurrentCulture))), userPB);
 
                     switch (localHits)
                     {
@@ -475,11 +508,13 @@ namespace LottoSimulator
                             gameHits++;
                             break;
                         default:
-                            Console.WriteLine("Call the Coastguard");
+                            Console.WriteLine("Defaulted in StreamWriter - Simulator()");
                             break;
                     }
                 }
+                #endregion
             }
+            #endregion
 
             stopWatch.Stop();
 
