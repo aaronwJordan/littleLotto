@@ -1,27 +1,26 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Security.AccessControl;
-using System.Text;
 using System.Threading;
 using System.Diagnostics;
 using System.Threading.Tasks;
-
 
 namespace LottoSimulator
 {
     class PowerBall : Control
     {
         // TODO: FISHER-YATES INTO SELFPICK/EASYPICK (STILL DRAWING DUPLICATES)
-        // TODO: MULTITHREADING
+        // TODO: CHANGE HARDCODING OF FILES INTO FILECREATION (IF NON-EXISTANT)
+        // TODO: CLEAN UP/USE UNUSED PARAMETERS
+        // TODO: FIX OUTPUT TO CONSOLE
+        // TODO: FIX THREAD PRINT ORDER (OH GOD)
 
         #region Class declarations / Accessors
         private Random rngMainRandom = new Random();
-        private double totalWalletAmount = 100.00;
+        private long totalWalletAmount = 100;
         private int[] selfPickWhiteBallArray = new int[MAX_PICK_NUM];
         private int[] selfPickPBArray = new int[1];
         private int[] computerPickWhiteBallArray = new int[MAX_PICK_NUM];
@@ -32,7 +31,7 @@ namespace LottoSimulator
         // MTTEST
         private static Dictionary<String, Object> LockObjects = new Dictionary<string, object>();
 
-        public double TotalWalletAmount
+        public long TotalWalletAmount
         {
             get { return totalWalletAmount; }
             set { totalWalletAmount = value; }
@@ -42,7 +41,7 @@ namespace LottoSimulator
         // Main control logic
         public void PlayLotto()
         {
-        Retry:
+            Retry:
             Console.Write("\nWould you like to choose your own numbers? If you select no a computer will generate them for you (y/n): ");
             string userChoice = Console.ReadLine();
 
@@ -87,7 +86,7 @@ namespace LottoSimulator
             Console.Write("\nPlease enter your PowerBall number (1-35): ");
             selfPickPBArray[0] = Convert.ToInt16(Console.ReadLine());
 
-            TotalWalletAmount -= 3.00; // Takes money to make money
+            TotalWalletAmount -= 3; // Takes money to make money
             TimeToDraw();
         }
 
@@ -102,7 +101,7 @@ namespace LottoSimulator
 
             computerPickPBArray[0] = RedBallRandomNumberGenerator(rngMainRandom);
 
-            TotalWalletAmount -= 3.00;
+            TotalWalletAmount -= 3;
             TimeToDraw();
         }
 
@@ -125,7 +124,7 @@ namespace LottoSimulator
         // User's numbers are compared with winning lottery number
         private void TimeToCompare(int[] computerWhiteBallArray, int[] computerRedBallArray)
         {
-            int matchingNumbers = 0;
+            long matchingNumbers = 0;
             bool matchingPB = false;
 
             if (selfPick)
@@ -170,7 +169,7 @@ namespace LottoSimulator
         }
 
         // Output results
-        private void OutputResults(int matchingNumbers, int[] computerWhiteBallArray, int[] computerRedBallArray)
+        private void OutputResults(long matchingNumbers, int[] computerWhiteBallArray, int[] computerRedBallArray)
         {
             Console.WriteLine("\nYou have {0} hits", matchingNumbers);
 
@@ -225,19 +224,19 @@ namespace LottoSimulator
         }
 
         // Handles wallet
-        private void WalletExchange(int matchingNumbers, bool matchingPB)
+        private void WalletExchange(long matchingNumbers, bool matchingPB)
         {
 
             if (matchingPB && matchingNumbers == 0)
-                TotalWalletAmount += 4.00;
+                TotalWalletAmount += 4;
             else if (matchingPB && matchingNumbers == 1)
-                TotalWalletAmount += 4.00;
+                TotalWalletAmount += 4;
             else if (matchingPB && matchingNumbers == 2)
-                TotalWalletAmount += 7.00;
+                TotalWalletAmount += 7;
             else if (matchingPB && matchingNumbers == 3)
-                TotalWalletAmount += 100.00;
+                TotalWalletAmount += 100;
             else if (matchingPB && matchingNumbers == 4)
-                TotalWalletAmount += 10000.00; // 10,000
+                TotalWalletAmount += 10000; // 10,000
             else if (matchingPB && matchingNumbers == 5)
             {
                 TotalWalletAmount += JackPot();
@@ -255,13 +254,13 @@ namespace LottoSimulator
                     case 2:
                         break;
                     case 3:
-                        TotalWalletAmount += 7.00;
+                        TotalWalletAmount += 7;
                         break;
                     case 4:
-                        TotalWalletAmount += 100.00;
+                        TotalWalletAmount += 100;
                         break;
                     case 5:
-                        TotalWalletAmount += 1000000.00; // 1 million
+                        TotalWalletAmount += 1000000; // 1 million
                         break;
                     default:
                         Console.WriteLine("Call the Coast Guard");
@@ -287,9 +286,9 @@ namespace LottoSimulator
         }
 
         // Jackpot is struck
-        private int JackPot()
+        private long JackPot()
         {
-            int jackPot = rngMainRandom.Next(100000000, 750000000); // 100 million / 750 million
+            long jackPot = rngMainRandom.Next(100000000, 750000000); // 100 million / 750 million
 
             return jackPot;
         }
@@ -311,16 +310,16 @@ namespace LottoSimulator
             int[] winningNumbers = new int[MAX_PICK_NUM];
             int userPB = 0;
             int winningPB = 0;
-            int totalHits = 0;
-            int totalPBHits = 0;
-            int gameHits = 0;
-            int oneHit = 0;
-            int twoHit = 0;
-            int threeHit = 0;
-            int fourHit = 0;
-            int fiveHit = 0;
-            double totalPlayWinnings = 0;
-            double totalPlayLosses = 0;
+            long totalHits = 0;
+            long totalPBHits = 0;
+            long gameHits = 0;
+            long oneHit = 0;
+            long twoHit = 0;
+            long threeHit = 0;
+            long fourHit = 0;
+            long fiveHit = 0;
+            long totalPlayWinnings = 0;
+            long totalPlayLosses = 0;
 
             #endregion
 
@@ -344,7 +343,7 @@ namespace LottoSimulator
             Array.Sort(winningNumbers);
 
             // Flow through selected number of runs (top of loop-stack)
-            SimulatorLogic(runNumber, totalPlayLosses, userArray, userPB, winningNumbers, totalHits, winningPB, totalHits, totalPlayWinnings, oneHit, twoHit, threeHit, fourHit, fiveHit, gameHits);
+            SimulationLogic(runNumber, totalPlayLosses, userArray, userPB, winningNumbers, totalHits, totalPBHits, winningPB, totalPlayWinnings, oneHit, twoHit, threeHit, fourHit, fiveHit, gameHits);
 
             // Stop benchmarking
             stopWatch.Stop();
@@ -357,18 +356,6 @@ namespace LottoSimulator
 
             #region Output
             // Display useful statistics
-            Console.WriteLine("\n{0} plays total", runNumber);
-            Console.WriteLine("{0} total hits - {1} total PowerBall hits", totalHits, totalPBHits);
-            Console.WriteLine("\n{0} - 0 hit game(s)", (runNumber - gameHits));
-            Console.WriteLine("{0} - 1 hit game(s)", oneHit);
-            Console.WriteLine("{0} - 2 hit game(s)", twoHit);
-            Console.WriteLine("{0} - 3 hit game(s)", threeHit);
-            Console.WriteLine("{0} - 4 hit game(s)", fourHit);
-            Console.WriteLine("{0} - 5 hit game(s)", fiveHit);
-            Console.WriteLine("{0} of games with hits - {1} of games without hits", gameHits, (runNumber - gameHits));
-
-            Console.WriteLine("\n${0} total money won - ${1} total money lost", totalPlayWinnings, totalPlayLosses);
-            Console.WriteLine("Final wallet amount: {0}", TotalWalletAmount);
             Console.WriteLine("Time elapsed: {0}", stopWatch.Elapsed);
             Console.Write("Done..");
             Console.ReadLine();
@@ -376,7 +363,8 @@ namespace LottoSimulator
             #endregion
         }
 
-        public void ShuffleWinningNumbers(int[] winningNumbers)
+        // Fisher-Yates shuffle to avoid duplicates
+        private void ShuffleWinningNumbers(int[] winningNumbers)
         {
             var winningNumbersShuffleArray = Enumerable.Range(1, 59).ToArray();
             for (int i = winningNumbersShuffleArray.Length; i > 0; i--)
@@ -393,7 +381,8 @@ namespace LottoSimulator
             }
         }
 
-        public void SimulatorLogic(long runNumber, double totalPlayLosses, int[] userArray, int userPB, int[] winningNumbers, int totalHits, int winningPB, int totalPBHits, double totalPlayWinnings, int oneHit, int twoHit, int threeHit, int fourHit, int fiveHit, int gameHits)
+        // All core simulation logic 
+        private void SimulationLogic(long runNumber, long totalPlayLosses, int[] userArray, int userPB, int[] winningNumbers, long totalHits, long totalPBHits, int winningPB, long totalPlayWinnings, long oneHit, long twoHit, long threeHit, long fourHit, long fiveHit, long gameHits)
         {
             // Write to log.txt @ desktop -- @"C:\Users\ajordan\Desktop\log.txt" -- is hard coded
             string outputFile = "C:\\Users\\ajordan\\Desktop\\log.txt";
@@ -403,8 +392,8 @@ namespace LottoSimulator
                 {
                     Parallel.For(0, runNumber, i =>
                     {
-                        int localHits = 0;
-                        double playWinnings = 0;
+                        long localHits = 0;
+                        long playWinnings = 0;
                         bool pbHit = false;
                         totalPlayLosses -= 3;
                         TotalWalletAmount -= 3;
@@ -450,30 +439,30 @@ namespace LottoSimulator
                         // All winnings logic
                         if (pbHit && localHits == 0)
                         {
-                            TotalWalletAmount += 4.00;
+                            TotalWalletAmount += 4;
                             playWinnings = 4;
                         }
                         else if (pbHit && localHits == 1)
                         {
-                            TotalWalletAmount += 4.00;
+                            TotalWalletAmount += 4;
                             playWinnings = 4;
                         }
 
                         else if (pbHit && localHits == 2)
                         {
-                            TotalWalletAmount += 7.00;
+                            TotalWalletAmount += 7;
                             playWinnings = 7;
                         }
 
                         else if (pbHit && localHits == 3)
                         {
-                            TotalWalletAmount += 100.00;
+                            TotalWalletAmount += 100;
                             playWinnings = 100;
                         }
 
                         else if (pbHit && localHits == 4)
                         {
-                            TotalWalletAmount += 10000.00; // 10,000
+                            TotalWalletAmount += 10000; // 10,000
                             playWinnings = 10000;
                         }
 
@@ -496,15 +485,15 @@ namespace LottoSimulator
                                 case 2:
                                     break;
                                 case 3:
-                                    TotalWalletAmount += 7.00;
+                                    TotalWalletAmount += 7;
                                     playWinnings = 7;
                                     break;
                                 case 4:
-                                    TotalWalletAmount += 100.00;
+                                    TotalWalletAmount += 100;
                                     playWinnings = 100;
                                     break;
                                 case 5:
-                                    TotalWalletAmount += 1000000.00; // 1 million
+                                    TotalWalletAmount += 1000000; // 1 million
                                     playWinnings = 1000000;
                                     break;
                                 default:
@@ -556,10 +545,26 @@ namespace LottoSimulator
                     });
                 }
             }
+
+            // Display useful statistics
+            Console.WriteLine("\n{0} plays total", runNumber);
+            Console.WriteLine("{0} total hits - {1} total PowerBall hits", totalHits, totalPBHits);
+            Console.WriteLine("\n{0} - 0 hit game(s)", (runNumber - gameHits));
+            Console.WriteLine("{0} - 1 hit game(s)", oneHit);
+            Console.WriteLine("{0} - 2 hit game(s)", twoHit);
+            Console.WriteLine("{0} - 3 hit game(s)", threeHit);
+            Console.WriteLine("{0} - 4 hit game(s)", fourHit);
+            Console.WriteLine("{0} - 5 hit game(s)", fiveHit);
+            Console.WriteLine("{0} of games with hits - {1} of games without hits", gameHits, (runNumber - gameHits));
+
+            Console.WriteLine("\n${0} total money won - ${1} total money lost", totalPlayWinnings, totalPlayLosses);
+            Console.WriteLine("Final wallet amount: {0}", TotalWalletAmount);
         }
 
-        public static void WriteToLog(int[] winningNumbers, int winningPB, int localHits, bool pbHit, double playWinnings, int[] userArray, int userPB, long runningNumbersI, string outputFile, StreamWriter sw)
+        // Multithreaded file writing (still out of order, but at least the damn thing doesn't print null shit everywhere)
+        private static void WriteToLog(int[] winningNumbers, int winningPB, long localHits, bool pbHit, long playWinnings, int[] userArray, int userPB, long runningNumbersI, string outputFile, StreamWriter sw)
         {
+            // static method for locks? or.. I have no id- in fact, all of multithreading is black magic to me.
             if (!LockObjects.ContainsKey(outputFile))
             {
                 LockObjects.Add(outputFile, new object());
@@ -570,11 +575,6 @@ namespace LottoSimulator
                 sw.WriteLine("Play {0}: {1} hit(s) - {2} PowerBall - Won ${3} - [{4}] - [{5}] - Thread: [{6}]", (runningNumbersI + 1), localHits, pbHit, playWinnings, string.Join(", ", userArray.Select(v => v.ToString(CultureInfo.CurrentCulture))), userPB, Thread.CurrentThread.ManagedThreadId);                              
             }
         }
-
-        //public void userArrayTransfer(int[] winningNumbers, int winningPB, int localHits, bool pbHit, double playWinnings, int[] userArray, int userPB, long i)
-        //{
-        //    WriteToLog(winningNumbers, winningPB, localHits, pbHit, playWinnings, userArray, userPB, i);
-        //}
         #endregion
     }
 }
