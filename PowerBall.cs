@@ -21,10 +21,10 @@ namespace LottoSimulator
         #region Class declarations / Accessors
         private Random rngMainRandom = new Random();
         private long totalWalletAmount = 100;
-        private int[] selfPickWhiteBallArray = new int[MAX_PICK_NUM];
-        private int[] selfPickPBArray = new int[1];
-        private int[] computerPickWhiteBallArray = new int[MAX_PICK_NUM];
-        private int[] computerPickPBArray = new int[1];
+        private long[] selfPickWhiteBallArray = new long[MAX_PICK_NUM];
+        private long[] selfPickPBArray = new long[1];
+        private long[] computerPickWhiteBallArray = new long[MAX_PICK_NUM];
+        private long[] computerPickPBArray = new long[1];
         private bool selfPick = false;
         private bool easyPick = false;
         private bool simulationMode = false;
@@ -108,8 +108,8 @@ namespace LottoSimulator
         // Computer selects winning lottery numbers
         private void TimeToDraw()
         {
-            int[] tempWhiteBallArray = new int[MAX_PICK_NUM];
-            int[] tempRedBallArray = new int[1];
+            long[] tempWhiteBallArray = new long[MAX_PICK_NUM];
+            long[] tempRedBallArray = new long[1];
 
             for (int i = 0; i < MAX_PICK_NUM; i++)
             {
@@ -122,7 +122,7 @@ namespace LottoSimulator
         }
 
         // User's numbers are compared with winning lottery number
-        private void TimeToCompare(int[] computerWhiteBallArray, int[] computerRedBallArray)
+        private void TimeToCompare(long[] computerWhiteBallArray, long[] computerRedBallArray)
         {
             long matchingNumbers = 0;
             bool matchingPB = false;
@@ -169,7 +169,7 @@ namespace LottoSimulator
         }
 
         // Output results
-        private void OutputResults(long matchingNumbers, int[] computerWhiteBallArray, int[] computerRedBallArray)
+        private void OutputResults(long matchingNumbers, long[] computerWhiteBallArray, long[] computerRedBallArray)
         {
             Console.WriteLine("\nYou have {0} hits", matchingNumbers);
 
@@ -270,17 +270,17 @@ namespace LottoSimulator
         }
 
         // White ball = normal picks
-        private int WhiteBallRandomNumberGenerator(Random fromMainRandom)
+        private long WhiteBallRandomNumberGenerator(Random fromMainRandom)
         {
-            int randomWhite = fromMainRandom.Next(1, 60);
+            long randomWhite = fromMainRandom.Next(1, 60);
 
             return randomWhite;
         }
 
         // Red ball = PowerBall
-        private int RedBallRandomNumberGenerator(Random fromMainRandom)
+        private long RedBallRandomNumberGenerator(Random fromMainRandom)
         {
-            int randomRed = fromMainRandom.Next(1, 36);
+            long randomRed = fromMainRandom.Next(1, 36);
 
             return randomRed;
         }
@@ -306,10 +306,10 @@ namespace LottoSimulator
 
             #region Local declarations
 
-            int[] userArray = new int[MAX_PICK_NUM];
-            int[] winningNumbers = new int[MAX_PICK_NUM];
-            int userPB = 0;
-            int winningPB = 0;
+            long[] userArray = new long[MAX_PICK_NUM];
+            long[] winningNumbers = new long[MAX_PICK_NUM];
+            long userPB = 0;
+            long winningPB = 0;
             long totalHits = 0;
             long totalPBHits = 0;
             long gameHits = 0;
@@ -364,7 +364,7 @@ namespace LottoSimulator
         }
 
         // Fisher-Yates shuffle to avoid duplicates
-        private void ShuffleWinningNumbers(int[] winningNumbers)
+        private void ShuffleWinningNumbers(long[] winningNumbers)
         {
             var winningNumbersShuffleArray = Enumerable.Range(1, 59).ToArray();
             for (int i = winningNumbersShuffleArray.Length; i > 0; i--)
@@ -382,7 +382,7 @@ namespace LottoSimulator
         }
 
         // All core simulation logic 
-        private void SimulationLogic(long runNumber, long totalPlayLosses, int[] userArray, int userPB, int[] winningNumbers, long totalHits, long totalPBHits, int winningPB, long totalPlayWinnings, long oneHit, long twoHit, long threeHit, long fourHit, long fiveHit, long gameHits)
+        private void SimulationLogic(long runNumber, long totalPlayLosses, long[] userArray, long userPB, long[] winningNumbers, long totalHits, long totalPBHits, long winningPB, long totalPlayWinnings, long oneHit, long twoHit, long threeHit, long fourHit, long fiveHit, long gameHits)
         {
             // Write to log.txt @ desktop -- @"C:\Users\ajordan\Desktop\log.txt" -- is hard coded
             string outputFile = "C:\\Users\\ajordan\\Desktop\\log.txt";
@@ -562,7 +562,7 @@ namespace LottoSimulator
         }
 
         // Multithreaded file writing (still out of order, but at least the damn thing doesn't print null shit everywhere)
-        private static void WriteToLog(int[] winningNumbers, int winningPB, long localHits, bool pbHit, long playWinnings, int[] userArray, int userPB, long runningNumbersI, string outputFile, StreamWriter sw)
+        private static void WriteToLog(long[] winningNumbers, long winningPB, long localHits, bool pbHit, long playWinnings, long[] userArray, long userPB, long runningNumbersI, string outputFile, StreamWriter sw)
         {
             // static method for locks? or.. I have no id- in fact, all of multithreading is black magic to me.
             if (!LockObjects.ContainsKey(outputFile))
