@@ -19,7 +19,9 @@ namespace LottoSimulator
         // TODO: FIX THREAD PRINT ORDER (OH GOD)
 
         #region Class declarations / Accessors
-        private Random rngMainRandom = new Random();
+        private static readonly Random rngMainRandom = new Random();
+        private static readonly object globalLock = new object();
+        private static readonly ThreadLocal<Random> threadRandom = new ThreadLocal<Random>(NewRandom); 
         private long totalWalletAmount = 100;
         private long[] selfPickWhiteBallArray = new long[MAX_PICK_NUM];
         private long[] selfPickPBArray = new long[1];
@@ -28,13 +30,17 @@ namespace LottoSimulator
         private bool selfPick = false;
         private bool easyPick = false;
         private bool simulationMode = false;
-        // MTTEST
         private static Dictionary<String, Object> LockObjects = new Dictionary<string, object>();
 
         public long TotalWalletAmount
         {
             get { return totalWalletAmount; }
             set { totalWalletAmount = value; }
+        }
+
+        public static Random Instance
+        {
+            get { return threadRandom.Value; }
         }
         #endregion
 
@@ -285,6 +291,7 @@ namespace LottoSimulator
             return randomRed;
         }
 
+
         // Jackpot is struck
         private long JackPot()
         {
@@ -297,8 +304,19 @@ namespace LottoSimulator
         // Simulation Mode - This is a disgusting function and is not intended for user access
         private void Simulation()
         {
+            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "log.txt");
+            string filePathTimes = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "times.txt");
             // Clearing the log.txt file for each new write
-            File.Create(@"C:\Users\ajordan\Desktop\log.txt").Close();
+            if (!File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "log.txt")))
+            {
+                //File.CreateText(filePath);
+                File.CreateText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "log.txt"));
+            }
+            else
+            {
+                //File.Create(@"C:\Users\ajordan\Desktop\log.txt").Close();
+                File.Create(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "log.txt")).Close();
+            }
 
             Console.WriteLine("\n\n                           ***SIMULATION MODE***");
             Console.Write("Runs: ");
@@ -334,7 +352,7 @@ namespace LottoSimulator
             winningPB = rngMainRandom.Next(1, 36);
 
             // Print winningNumbers to log.txt
-            using (var fileWriter = new StreamWriter(@"C:\Users\ajordan\Desktop\log.txt", true))
+            using (var fileWriter = new StreamWriter(filePath, true))
             {
                 fileWriter.WriteLine("Winning numbers: [{0}] - PowerBall: [{1}]", string.Join(", ", winningNumbers.Select(v => v.ToString())), winningPB);
             }
@@ -349,7 +367,7 @@ namespace LottoSimulator
             stopWatch.Stop();
 
             // Write stopWatch timings to times.txt for benchmarking -- @"C:\Users\ajordan\Desktop\times.txt" -- is hard coded
-            using (StreamWriter fileWriter = new StreamWriter(@"C:\Users\ajordan\Desktop\times.txt", true))
+            using (StreamWriter fileWriter = new StreamWriter(filePathTimes, true))
             {
                 fileWriter.WriteLine("{0} simulations processed in {1}", runNumber, stopWatch.Elapsed);
             }
@@ -385,8 +403,8 @@ namespace LottoSimulator
         private void SimulationLogic(long runNumber, long totalPlayLosses, long[] userArray, long userPB, long[] winningNumbers, long totalHits, long totalPBHits, long winningPB, long totalPlayWinnings, long oneHit, long twoHit, long threeHit, long fourHit, long fiveHit, long gameHits)
         {
             // Write to log.txt @ desktop -- @"C:\Users\ajordan\Desktop\log.txt" -- is hard coded
-            string outputFile = "C:\\Users\\ajordan\\Desktop\\log.txt";
-            using (FileStream fs = new FileStream(outputFile, FileMode.Append, FileSystemRights.AppendData, FileShare.Read, 4096, FileOptions.None))
+            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "log.txt");
+            using (FileStream fs = new FileStream(filePath, FileMode.Append, FileSystemRights.AppendData, FileShare.Read, 4096, FileOptions.None))
             {
                 using (StreamWriter sw = new StreamWriter(fs))
                 {
@@ -541,7 +559,7 @@ namespace LottoSimulator
                         #endregion
 
                         //userArrayTransfer(winningNumbers, winningPB, localHits, pbHit, playWinnings, userArray, userPB, i);
-                        WriteToLog(winningNumbers, winningPB, localHits, pbHit, playWinnings, userArray, userPB, i, outputFile, sw);
+                        WriteToLog(winningNumbers, winningPB, localHits, pbHit, playWinnings, userArray, userPB, i, filePath, sw);
                     });
                 }
             }
@@ -562,19 +580,29 @@ namespace LottoSimulator
         }
 
         // Multithreaded file writing (still out of order, but at least the damn thing doesn't print null shit everywhere)
-        private static void WriteToLog(long[] winningNumbers, long winningPB, long localHits, bool pbHit, long playWinnings, long[] userArray, long userPB, long runningNumbersI, string outputFile, StreamWriter sw)
+        private static void WriteToLog(long[] winningNumbers, long winningPB, long localHits, bool pbHit, long playWinnings, long[] userArray, long userPB, long runningNumbersI, string filePath, StreamWriter sw)
         {
             // static method for locks? or.. I have no id- in fact, all of multithreading is black magic to me.
-            if (!LockObjects.ContainsKey(outputFile))
+            if (!LockObjects.ContainsKey(filePath))
             {
-                LockObjects.Add(outputFile, new object());
+                LockObjects.Add(filePath, new object());
             }
 
-            lock (LockObjects[outputFile])
+            lock (LockObjects[filePath])
             {                                  
                 sw.WriteLine("Play {0}: {1} hit(s) - {2} PowerBall - Won ${3} - [{4}] - [{5}] - Thread: [{6}]", (runningNumbersI + 1), localHits, pbHit, playWinnings, string.Join(", ", userArray.Select(v => v.ToString(CultureInfo.CurrentCulture))), userPB, Thread.CurrentThread.ManagedThreadId);                              
             }
         }
         #endregion
+
+        // Creates a new instance of random. The seed is derived
+        // from a global (static) instance instead of using time
+        public static Random NewRandom()
+        {
+            lock (globalLock)
+            {
+                return new Random(rngMainRandom.Next());
+            }
+        }
     }
 }
